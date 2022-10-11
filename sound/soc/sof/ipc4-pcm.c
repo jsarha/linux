@@ -84,9 +84,9 @@ static int sof_ipc4_trigger_pipelines(struct snd_soc_component *component,
 
 			if (state == SOF_IPC4_PIPE_RUNNING) {
 				/* set allocate, enable and scs bits to configure chain DMA. FIXME: do this properly */
-				pipeline->msg.primary = SOF_IPC4_MSG_TYPE_SET(SOF_IPC4_GLB_CHAIN_DMA);
-				pipeline->msg.primary |= SOF_IPC4_MSG_DIR(SOF_IPC4_MSG_REQUEST);
-				pipeline->msg.primary |= SOF_IPC4_MSG_TARGET(SOF_IPC4_FW_GEN_MSG);
+				msg->primary = SOF_IPC4_MSG_TYPE_SET(SOF_IPC4_GLB_CHAIN_DMA);
+				msg->primary |= SOF_IPC4_MSG_DIR(SOF_IPC4_MSG_REQUEST);
+				msg->primary |= SOF_IPC4_MSG_TARGET(SOF_IPC4_FW_GEN_MSG);
 				/* FIXME: set SCS bit for 16-bit playback */
 				msg->primary |= (0x3 << 16);
 				return sof_ipc_tx_message(sdev->ipc, msg, 0, NULL, 0);
