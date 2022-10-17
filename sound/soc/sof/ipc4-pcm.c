@@ -83,14 +83,17 @@ static int sof_ipc4_trigger_pipelines(struct snd_soc_component *component,
 				continue;
 
 			if (state == SOF_IPC4_PIPE_RUNNING) {
-				/* set allocate, enable and scs bits to configure chain DMA. FIXME: do this properly */
+				/* Set allocate and enable bits to configure chain DMA. The
+				 * other msg bits are set in sof_ipc4_prepare_copier_module()
+				 * and in sof_ipc4_dai_config(), and cleared in
+				 * sof_ipc4_unprepare_copier_module().
+				 */
 				msg->primary = SOF_IPC4_MSG_TYPE_SET(SOF_IPC4_GLB_CHAIN_DMA);
 				msg->primary |= SOF_IPC4_MSG_DIR(SOF_IPC4_MSG_REQUEST);
 				msg->primary |= SOF_IPC4_MSG_TARGET(SOF_IPC4_FW_GEN_MSG);
-				/* FIXME: set SCS bit for 16-bit playback */
-				msg->primary |= (0x3 << 16);
+				msg->primary |= SOF_IPC4_GLB_CHAIN_DMA_ALLOCATE_MASK;
+				msg->primary |= SOF_IPC4_GLB_CHAIN_DMA_ENABLE_MASK;
 				return sof_ipc_tx_message(sdev->ipc, msg, 0, NULL, 0);
-
 			}
 
 			/* only handle the PAUSED state to avoid sending the same IPC more than once. */

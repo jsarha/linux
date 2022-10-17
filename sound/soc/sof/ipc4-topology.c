@@ -963,13 +963,13 @@ static void sof_ipc4_unprepare_copier_module(struct snd_sof_widget *swidget)
 
 	if (WIDGET_IS_AIF(swidget->id)) {
 		if (pipeline->use_chain_dma)
-			pipeline->msg.primary &= ~(GENMASK(4, 0));
+			pipeline->msg.primary &= ~SOF_IPC4_GLB_CHAIN_DMA_HOST_ID_MASK;
 		ipc4_copier = swidget->private;
 	} else if (WIDGET_IS_DAI(swidget->id)) {
 		struct snd_sof_dai *dai = swidget->private;
 
 		if (pipeline->use_chain_dma)
-			pipeline->msg.primary &= ~(GENMASK(12, 8));
+			pipeline->msg.primary &= ~SOF_IPC4_GLB_CHAIN_DMA_LINK_ID_MASK;
 
 		ipc4_copier = dai->private;
 		if (ipc4_copier->dai_type == SOF_DAI_INTEL_ALH) {
@@ -1133,14 +1133,22 @@ sof_ipc4_prepare_copier_module(struct snd_sof_widget *swidget,
 		pipeline = pipe_widget->private;
 
 		if (pipeline->use_chain_dma) {
+			u32 host_dma_id;
 			u32 fifo_size;
 
-			pipeline->msg.primary |= platform_params->stream_tag - 1;
+			host_dma_id  = platform_params->stream_tag - 1;
+			pipeline->msg.primary |= SOF_IPC4_GLB_CHAIN_DMA_HOST_ID(host_dma_id);
 
-			/* FIXME: use the bits per sample based on format */
-			fifo_size = 2 * ((params_rate(fe_params) * params_channels(fe_params) * 32)/ 8000);
+			if (params_width(fe_params) > 16)
+				pipeline->msg.primary |= SOF_IPC4_GLB_CHAIN_DMA_SCS_MASK;
+			else
+				pipeline->msg.primary &= ~SOF_IPC4_GLB_CHAIN_DMA_SCS_MASK;
+
+			fifo_size = 2 * ((params_rate(fe_params) * params_channels(fe_params) *
+					  params_width(fe_params))/ 8000);
 			dev_dbg(sdev->dev, "fifo_size is %d\n", fifo_size);
-			pipeline->msg.extension = fifo_size;
+			pipeline->msg.extension &= ~SOF_IPC4_GLB_EXT_CHAIN_DMA_FIFO_SIZE_MASK;
+			pipeline->msg.extension |= SOF_IPC4_GLB_EXT_CHAIN_DMA_FIFO_SIZE(fifo_size);
 			return 0;
 		}
 		ipc4_copier = (struct sof_ipc4_copier *)swidget->private;
@@ -1868,7 +1876,7 @@ static int sof_ipc4_dai_config(struct snd_sof_dev *sdev, struct snd_sof_widget *
 	case SOF_DAI_INTEL_HDA:
 
 		if (pipeline->use_chain_dma) {
-			pipeline->msg.primary |= data->dai_data << 8;
+			pipeline->msg.primary |= SOF_IPC4_GLB_CHAIN_DMA_LINK_ID(data->dai_data);
 			break;
 		}
 		gtw_attr = ipc4_copier->gtw_attr;
