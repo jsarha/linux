@@ -2134,6 +2134,16 @@ static int sof_complete(struct snd_soc_component *scomp)
 					if (ret < 0)
 						return ret;
 				}
+
+			/* Update the scheduler widget's IPC structure */
+			if (widget_ops[swidget->id].ipc_setup) {
+				ret = widget_ops[swidget->id].ipc_setup(swidget);
+				if (ret < 0) {
+					dev_err(sdev->dev, "failed updating IPC struct for %s\n",
+						swidget->widget->name);
+					return ret;
+				}
+			}
 			break;
 		default:
 			break;
@@ -2146,7 +2156,7 @@ static int sof_complete(struct snd_soc_component *scomp)
 	 * associated memories.
 	 */
 	list_for_each_entry(swidget, &sdev->widget_list, list) {
-		if (widget_ops[swidget->id].ipc_setup) {
+		if (swidget->id != snd_soc_dapm_scheduler && widget_ops[swidget->id].ipc_setup) {
 			ret = widget_ops[swidget->id].ipc_setup(swidget);
 			if (ret < 0) {
 				dev_err(sdev->dev, "failed updating IPC struct for %s\n",
