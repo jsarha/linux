@@ -1362,6 +1362,38 @@ err:
 	return ret;
 }
 
+static int sof_dapm_widget_event_catcher(struct snd_soc_dapm_widget *w,
+					 struct snd_kcontrol *kcontrol, int event)
+{
+	struct snd_soc_component *scomp = snd_soc_dapm_to_component(w->dapm);
+	struct snd_sof_dev *sdev = snd_soc_component_get_drvdata(scomp);
+
+	switch (event) {
+	case SND_SOC_DAPM_PRE_PMU:
+		dev_info(sdev->dev, "%s: SND_SOC_DAPM_PRE_PMU\n", w->name);
+		break;
+	case SND_SOC_DAPM_POST_PMU:
+		dev_info(sdev->dev, "%s: SND_SOC_DAPM_POST_PMU\n", w->name);
+		break;
+	case SND_SOC_DAPM_PRE_PMD:
+		dev_info(sdev->dev, "%s: SND_SOC_DAPM_PRE_PMD\n", w->name);
+		break;
+	case SND_SOC_DAPM_POST_PMD:
+		dev_info(sdev->dev, "%s: SND_SOC_DAPM_POST_PMD\n", w->name);
+		break;
+	case SND_SOC_DAPM_WILL_PMU:
+		dev_info(sdev->dev, "%s: SND_SOC_DAPM_WILL_PMU\n", w->name);
+		break;
+	case SND_SOC_DAPM_WILL_PMD:
+		dev_info(sdev->dev, "%s: SND_SOC_DAPM_WILL_PMD\n", w->name);
+		break;
+	default:
+		dev_info(sdev->dev, "%s: unhandled event: %d\n", w->name, event);
+	}
+
+	return 0;
+}
+
 /* external widget init - used for any driver specific init */
 static int sof_widget_ready(struct snd_soc_component *scomp, int index,
 			    struct snd_soc_dapm_widget *w,
@@ -1377,9 +1409,14 @@ static int sof_widget_ready(struct snd_soc_component *scomp, int index,
 	int token_list_size = 0;
 	int ret = 0;
 
+	pr_warn("[hali] %s: dapm name: %s, id: %d\n", __func__, w->name, w->id);
 	swidget = kzalloc(sizeof(*swidget), GFP_KERNEL);
 	if (!swidget)
 		return -ENOMEM;
+
+	w->event_flags = SND_SOC_DAPM_PRE_POST_PMD | SND_SOC_DAPM_PRE_POST_PMU |
+			 SND_SOC_DAPM_WILL_PMU | SND_SOC_DAPM_WILL_PMD;
+	w->event = sof_dapm_widget_event_catcher;
 
 	swidget->scomp = scomp;
 	swidget->widget = w;
@@ -2125,9 +2162,57 @@ static int sof_set_widget_pipeline(struct snd_sof_dev *sdev, struct snd_sof_pipe
 	return 0;
 }
 
+static int sof_codec_to_codec_event(struct snd_soc_dapm_widget *w,
+				    struct snd_kcontrol *kcontrol, int event)
+{
+	struct snd_soc_component *scomp = snd_soc_dapm_to_component(w->dapm);
+	struct snd_sof_dev *sdev = snd_soc_component_get_drvdata(scomp);
+
+	switch (event) {
+	case SND_SOC_DAPM_PRE_PMU:
+		dev_info(sdev->dev, "%s: SND_SOC_DAPM_PRE_PMU\n", w->name);
+		break;
+	case SND_SOC_DAPM_POST_PMU:
+		dev_info(sdev->dev, "%s: SND_SOC_DAPM_POST_PMU\n", w->name);
+		break;
+	case SND_SOC_DAPM_PRE_PMD:
+		dev_info(sdev->dev, "%s: SND_SOC_DAPM_PRE_PMD\n", w->name);
+		break;
+	case SND_SOC_DAPM_POST_PMD:
+		dev_info(sdev->dev, "%s: SND_SOC_DAPM_POST_PMD\n", w->name);
+		break;
+	case SND_SOC_DAPM_WILL_PMU:
+		dev_info(sdev->dev, "%s: SND_SOC_DAPM_WILL_PMU\n", w->name);
+		break;
+	case SND_SOC_DAPM_WILL_PMD:
+		dev_info(sdev->dev, "%s: SND_SOC_DAPM_WILL_PMD\n", w->name);
+		break;
+	default:
+		dev_info(sdev->dev, "%s: unhandled event: %d\n", w->name, event);
+	}
+
+	return 0;
+}
+
+static const struct snd_kcontrol_new virt_enable_control =
+	SOC_DAPM_SINGLE_VIRT("Switch", 1);
+
+static const struct snd_soc_dapm_widget sof_dapm_widgets[] = {
+	SND_SOC_DAPM_SWITCH_E("Loopback on Analog", SND_SOC_NOPM, 0, 0,
+			      &virt_enable_control, sof_codec_to_codec_event,
+			      SND_SOC_DAPM_PRE_POST_PMD | SND_SOC_DAPM_PRE_POST_PMU |
+			      SND_SOC_DAPM_WILL_PMU | SND_SOC_DAPM_WILL_PMD),
+};
+
+static const struct snd_soc_dapm_route sof_intercon[] = {
+	{"copier.HDA.2.1", NULL, "Loopback on Analog"},
+	{"Loopback on Analog", "Switch", "copier.HDA.4.1"},
+};
+
 /* completion - called at completion of firmware loading */
 static int sof_complete(struct snd_soc_component *scomp)
 {
+	struct snd_soc_dapm_context *dapm = snd_soc_component_get_dapm(scomp);
 	struct snd_sof_dev *sdev = snd_soc_component_get_drvdata(scomp);
 	const struct sof_ipc_tplg_ops *tplg_ops = sof_ipc_get_ops(sdev, tplg);
 	const struct sof_ipc_tplg_widget_ops *widget_ops;
@@ -2206,6 +2291,9 @@ static int sof_complete(struct snd_soc_component *scomp)
 	/* set up static pipelines */
 	if (tplg_ops && tplg_ops->set_up_all_pipelines)
 		return tplg_ops->set_up_all_pipelines(sdev, false);
+
+	snd_soc_dapm_new_controls(dapm, sof_dapm_widgets, ARRAY_SIZE(sof_dapm_widgets));
+	snd_soc_dapm_add_routes(dapm, sof_intercon, ARRAY_SIZE(sof_intercon));
 
 	return 0;
 }
