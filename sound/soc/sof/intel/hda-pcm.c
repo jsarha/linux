@@ -205,6 +205,54 @@ found:
 	return pos;
 }
 
+static void dspless_hda_update_fe_stream(struct snd_sof_dev *sdev,
+					 struct snd_pcm_substream *fe_substream)
+{
+	struct snd_soc_pcm_runtime *fe_rtd = asoc_substream_to_rtd(fe_substream);
+	struct hdac_stream *fe_hstream = fe_substream->runtime->private_data;
+	struct snd_soc_dai *fe_dai = asoc_rtd_to_cpu(fe_rtd, 0);
+	struct snd_soc_dai_driver *fe_dai_drv = fe_dai->driver;
+	struct snd_soc_pcm_stream *fe_stream, *be_stream;
+	struct snd_pcm_substream *be_substream;
+	struct snd_soc_dai_driver *be_dai_drv;
+	struct snd_soc_pcm_runtime *be_rtd;
+	struct hdac_stream *be_hstream;
+	struct snd_soc_dai *be_dai;
+	struct snd_soc_dpcm *dpcm;
+	bool found = false;
+
+	for_each_dpcm_be(fe_rtd, fe_substream->stream, dpcm) {
+		be_substream = snd_soc_dpcm_get_substream(dpcm->be, fe_substream->stream);
+		be_hstream = be_substream->runtime->private_data;
+
+		if (fe_hstream->stream_tag == be_hstream->stream_tag) {
+			found = true;
+			break;
+		}
+	}
+
+	if (!found)
+		return;
+
+	be_rtd = asoc_substream_to_rtd(be_substream);
+	be_dai = asoc_rtd_to_cpu(be_rtd, 0);
+	be_dai_drv = be_dai->driver;
+
+	if (fe_substream->stream == SNDRV_PCM_STREAM_PLAYBACK) {
+		fe_stream = &fe_dai_drv->playback;
+		be_stream = &be_dai_drv->playback;
+	} else {
+		fe_stream = &fe_dai_drv->capture;
+		be_stream = &be_dai_drv->capture;
+	}
+
+	fe_stream->channels_min = be_stream->channels_min;
+	fe_stream->channels_max = be_stream->channels_max;
+	fe_stream->rates = be_stream->rates;
+	fe_stream->rate_min = be_stream->rate_min;
+	fe_stream->rate_max = be_stream->rate_max;
+}
+
 int hda_dsp_pcm_open(struct snd_sof_dev *sdev,
 		     struct snd_pcm_substream *substream)
 {
@@ -254,13 +302,17 @@ int hda_dsp_pcm_open(struct snd_sof_dev *sdev,
 	snd_pcm_hw_constraint_integer(substream->runtime,
 				      SNDRV_PCM_HW_PARAM_PERIODS);
 
-	/* Only S16 and S32 supported by HDA hardware when used without DSP */
-	if (sdev->dspless_mode_selected)
-		snd_pcm_hw_constraint_mask64(substream->runtime, SNDRV_PCM_HW_PARAM_FORMAT,
-					     SNDRV_PCM_FMTBIT_S16 | SNDRV_PCM_FMTBIT_S32);
-
 	/* binding pcm substream to hda stream */
 	substream->runtime->private_data = &dsp_stream->hstream;
+
+	if (sdev->dspless_mode_selected) {
+		dspless_hda_update_fe_stream(sdev, substream);
+
+		/* Only S16 and S32 supported by HDA hardware when used without DSP */
+		snd_pcm_hw_constraint_mask64(substream->runtime, SNDRV_PCM_HW_PARAM_FORMAT,
+					     SNDRV_PCM_FMTBIT_S16 | SNDRV_PCM_FMTBIT_S32);
+	}
+
 	return 0;
 }
 
