@@ -845,6 +845,7 @@ int snd_hdac_query_supported_pcm(struct hdac_device *codec, hda_nid_t nid,
 			return -EIO;
 		}
 		*ratesp = rates;
+		pr_warn("%s: rates: %#x\n", __func__, rates);
 	}
 
 	if (formatsp || bpsp) {
@@ -912,6 +913,7 @@ int snd_hdac_query_supported_pcm(struct hdac_device *codec, hda_nid_t nid,
 			*formatsp = formats;
 		if (bpsp)
 			*bpsp = bps;
+		pr_warn("%s: formats: %#llx\n", __func__, formats);
 	}
 
 	return 0;

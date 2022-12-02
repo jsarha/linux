@@ -1896,6 +1896,7 @@ static int sof_ipc4_control_load_volume(struct snd_sof_dev *sdev, struct snd_sof
 	struct sof_ipc4_msg *msg;
 	int i;
 
+	pr_warn("[SANYI] %s: ENTER for %s\n", __func__, scontrol->name);
 	scontrol->size = struct_size(control_data, chanv, scontrol->num_channels);
 
 	/* scontrol->ipc_control_data will be freed in sof_control_unload */

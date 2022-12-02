@@ -584,6 +584,7 @@ static int azx_pcm_open(struct snd_pcm_substream *substream)
 	int err;
 	int buff_step;
 
+	pr_warn("%s: ENTER\n", __func__);
 	snd_hda_codec_pcm_get(apcm->info);
 	mutex_lock(&chip->open_mutex);
 	azx_dev = azx_assign_device(chip, substream);
@@ -629,6 +630,14 @@ static int azx_pcm_open(struct snd_pcm_substream *substream)
 	snd_pcm_hw_constraint_step(runtime, 0, SNDRV_PCM_HW_PARAM_PERIOD_BYTES,
 				   buff_step);
 	snd_hda_power_up(apcm->codec);
+
+	pr_warn("%s: channels_min: %d\n", __func__, runtime->hw.channels_min);
+	pr_warn("%s: channels_max: %d\n", __func__, runtime->hw.channels_max);
+	pr_warn("%s: formats: %#llx\n", __func__, runtime->hw.formats);
+	pr_warn("%s: rates: %#x\n", __func__, runtime->hw.rates);
+	pr_warn("%s: rate_min: %d\n", __func__, runtime->hw.rate_min);
+	pr_warn("%s: rate_max: %d\n", __func__, runtime->hw.rate_max);
+
 	if (hinfo->ops.open)
 		err = hinfo->ops.open(hinfo, apcm->codec, substream);
 	else
