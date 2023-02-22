@@ -1198,7 +1198,6 @@ static int hdmi_pcm_open_no_pin(struct hda_pcm_stream *hinfo,
 	struct hdmi_spec_per_cvt *per_cvt = NULL;
 	int err;
 
-	pr_warn("%s: ENTER\n", __func__);
 	pcm_idx = hinfo_to_pcm_index(codec, hinfo);
 	if (pcm_idx < 0)
 		return -EINVAL;
@@ -1229,13 +1228,6 @@ static int hdmi_pcm_open_no_pin(struct hda_pcm_stream *hinfo,
 	runtime->hw.formats = hinfo->formats;
 	runtime->hw.rates = hinfo->rates;
 
-	pr_warn("%s: channels_min: %d\n", __func__, runtime->hw.channels_min);
-	pr_warn("%s: channels_max: %d\n", __func__, runtime->hw.channels_max);
-	pr_warn("%s: formats: %#llx\n", __func__, runtime->hw.formats);
-	pr_warn("%s: rates: %#x\n", __func__, runtime->hw.rates);
-	pr_warn("%s: rate_min: %d\n", __func__, runtime->hw.rate_min);
-	pr_warn("%s: rate_max: %d\n", __func__, runtime->hw.rate_max);
-
 	snd_pcm_hw_constraint_step(substream->runtime, 0,
 				   SNDRV_PCM_HW_PARAM_CHANNELS, 2);
 	return 0;
@@ -1255,8 +1247,6 @@ static int hdmi_pcm_open(struct hda_pcm_stream *hinfo,
 	struct hdmi_eld *eld;
 	struct hdmi_spec_per_cvt *per_cvt = NULL;
 	int err;
-
-	pr_warn("%s: ENTER\n", __func__);
 
 	/* Validate hinfo */
 	pcm_idx = hinfo_to_pcm_index(codec, hinfo);
@@ -1326,13 +1316,6 @@ static int hdmi_pcm_open(struct hda_pcm_stream *hinfo,
 	runtime->hw.channels_max = hinfo->channels_max;
 	runtime->hw.formats = hinfo->formats;
 	runtime->hw.rates = hinfo->rates;
-
-	pr_warn("%s: channels_min: %d\n", __func__, runtime->hw.channels_min);
-	pr_warn("%s: channels_max: %d\n", __func__, runtime->hw.channels_max);
-	pr_warn("%s: formats: %#llx\n", __func__, runtime->hw.formats);
-	pr_warn("%s: rates: %#x\n", __func__, runtime->hw.rates);
-	pr_warn("%s: rate_min: %d\n", __func__, runtime->hw.rate_min);
-	pr_warn("%s: rate_max: %d\n", __func__, runtime->hw.rate_max);
 
 	snd_pcm_hw_constraint_step(substream->runtime, 0,
 				   SNDRV_PCM_HW_PARAM_CHANNELS, 2);
@@ -1965,7 +1948,6 @@ static int hdmi_add_cvt(struct hda_codec *codec, hda_nid_t cvt_nid)
 	unsigned int chans;
 	int err;
 
-	pr_warn("%s: ENTER\n", __func__);
 	chans = get_wcaps(codec, cvt_nid);
 	chans = get_wcaps_channels(chans);
 
@@ -1992,10 +1974,6 @@ static int hdmi_add_cvt(struct hda_codec *codec, hda_nid_t cvt_nid)
 		spec->cvt_nids[spec->num_cvts] = cvt_nid;
 	spec->num_cvts++;
 
-	pr_warn("%s: formats: %#llx\n", __func__, per_cvt->formats);
-	pr_warn("%s: rates: %#x\n", __func__, per_cvt->rates);
-
-	pr_warn("%s: LEAVE\n", __func__);
 	return 0;
 }
 
@@ -2017,7 +1995,6 @@ static int hdmi_parse_codec(struct hda_codec *codec)
 	int i, nodes;
 	const struct snd_pci_quirk *q;
 
-	pr_warn("%s: ENTER\n", __func__);
 	nodes = snd_hda_get_sub_nodes(codec, codec->core.afg, &start_nid);
 	if (!start_nid || nodes < 0) {
 		codec_warn(codec, "HDMI: failed to get afg sub nodes\n");
@@ -2061,7 +2038,6 @@ static int hdmi_parse_codec(struct hda_codec *codec)
 			hdmi_add_pin(codec, nid);
 	}
 
-	pr_warn("%s: LEAVE\n", __func__);
 	return 0;
 }
 

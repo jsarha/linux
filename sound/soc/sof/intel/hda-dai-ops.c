@@ -181,7 +181,7 @@ static unsigned int hda_calc_stream_format(struct snd_sof_dev *sdev,
 		link_bps = codec_dai->driver->capture.sig_bits;
 
 	format_val = snd_hdac_calc_stream_format(params_rate(params), params_channels(params),
-						 params_format(params), link_bps, 0 /*AC_DIG1_NONAUDIO*/);
+						 params_format(params), link_bps, 0);
 
 	dev_dbg(sdev->dev, "format_val=%#x, rate=%d, ch=%d, format=%d\n", format_val,
 		params_rate(params), params_channels(params), params_format(params));

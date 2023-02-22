@@ -1517,8 +1517,6 @@ static int sof_widget_ready(struct snd_soc_component *scomp, int index,
 
 		if (core >= 0)
 			swidget->core = core;
-		pr_warn("%s: widget %s is on core %d (%d)\n", __func__,
-			swidget->widget->name, swidget->core, core);
 	}
 
 	/* bind widget to external event */
@@ -1687,7 +1685,6 @@ static int sof_dai_load(struct snd_soc_component *scomp, int index,
 	int stream;
 	int ret;
 
-	pr_warn("%s: ENTER: dai_name: %s\n", __func__, pcm->dai_name);
 	/* nothing to do for BEs atm */
 	if (!pcm)
 		return 0;
@@ -1758,10 +1755,8 @@ capture:
 	stream = SNDRV_PCM_STREAM_CAPTURE;
 
 	/* do we need to allocate capture PCM DMA pages */
-	if (!spcm->pcm.capture) {
-		pr_warn("%s: LEAVE: dai_name: %s\n", __func__, pcm->dai_name);
+	if (!spcm->pcm.capture)
 		return ret;
-	}
 
 	caps = &spcm->pcm.caps[stream];
 
@@ -1783,7 +1778,6 @@ capture:
 		goto free_playback_tables;
 	}
 
-	pr_warn("%s: LEAVE: dai_name: %s\n", __func__, pcm->dai_name);
 	return ret;
 
 free_playback_tables:
@@ -2317,17 +2311,14 @@ static int sof_dspless_widget_ready(struct snd_soc_component *scomp, int index,
 				    struct snd_soc_dapm_widget *w,
 				    struct snd_soc_tplg_dapm_widget *tw)
 {
-	pr_warn("%s: ENTER: widget: %s\n", __func__, w->name);
 	if (WIDGET_IS_DAI(w->id)) {
 		struct snd_sof_dai dai;
 
 		memset(&dai, 0, sizeof(dai));
 
-		pr_warn("%s: LEAVE: widget: %s (DAI)\n", __func__, w->name);
 		return sof_connect_dai_widget(scomp, w, tw, &dai);
 	}
 
-	pr_warn("%s: LEAVE: widget: %s\n", __func__, w->name);
 	return 0;
 }
 
@@ -2336,12 +2327,9 @@ static int sof_dspless_widget_unload(struct snd_soc_component *scomp,
 {
 	struct snd_soc_dapm_widget *w = container_of(dobj, struct snd_soc_dapm_widget, dobj);
 
-	pr_warn("%s: ENTER: widget: %s\n", __func__, w->name);
-
 	if (WIDGET_IS_DAI(w->id))
 		sof_disconnect_dai_widget(scomp, w);
 
-	pr_warn("%s: LEAVE: widget: %s\n", __func__, w->name);
 	return 0;
 }
 

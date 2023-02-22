@@ -218,7 +218,7 @@ static int hdac_hda_dai_hw_params(struct snd_pcm_substream *substream,
 						 params_channels(params),
 						 params_format(params),
 						 maxbps,
-						 0 /*AC_DIG1_NONAUDIO*/);
+						 0);
 	if (!format_val) {
 		dev_err(dai->dev,
 			"invalid format_val, rate=%d, ch=%d, format=%d, maxbps=%d\n",
@@ -290,7 +290,6 @@ static int hdac_hda_dai_open(struct snd_pcm_substream *substream,
 	struct hda_pcm_stream *hda_stream;
 	struct hda_pcm *pcm;
 
-	pr_warn("%s: ENTER\n", __func__);
 	hda_pvt = snd_soc_component_get_drvdata(component);
 	pcm = snd_soc_find_pcm_from_dai(hda_pvt, dai);
 	if (!pcm)
@@ -299,12 +298,6 @@ static int hdac_hda_dai_open(struct snd_pcm_substream *substream,
 	snd_hda_codec_pcm_get(pcm);
 
 	hda_stream = &pcm->stream[substream->stream];
-
-	pr_warn("%s: channels_min: %d\n", __func__, hda_stream->channels_min);
-	pr_warn("%s: channels_max: %d\n", __func__, hda_stream->channels_max);
-	pr_warn("%s: formats: %#llx\n", __func__, hda_stream->formats);
-	pr_warn("%s: rates: %#x\n", __func__, hda_stream->rates);
-
 
 	return hda_stream->ops.open(hda_stream, hda_pvt->codec, substream);
 }
@@ -407,7 +400,6 @@ static int hdac_hda_codec_probe(struct snd_soc_component *component)
 	hda_codec_patch_t patch;
 	int ret;
 
-	pr_warn("%s: ENTER\n", __func__);
 	hlink = snd_hdac_ext_bus_get_hlink_by_name(hdev->bus, dev_name(&hdev->dev));
 	if (!hlink) {
 		dev_err(&hdev->dev, "hdac link not found\n");
@@ -425,7 +417,6 @@ static int hdac_hda_codec_probe(struct snd_soc_component *component)
 		snd_hdac_display_power(hdev->bus,
 				       HDA_CODEC_IDX_CONTROLLER, true);
 
-	pr_warn("%s: 1\n", __func__);
 	ret = snd_hda_codec_device_new(hcodec->bus, component->card->snd_card,
 				       hdev->addr, hcodec, true);
 	if (ret < 0) {
@@ -438,7 +429,6 @@ static int hdac_hda_codec_probe(struct snd_soc_component *component)
 	 * device is needed.
 	 */
 	hdev->type = HDA_DEV_ASOC;
-	pr_warn("%s: 2\n", __func__);
 
 	/*
 	 * snd_hda_codec_device_new decrements the usage count so call get pm
@@ -460,10 +450,8 @@ static int hdac_hda_codec_probe(struct snd_soc_component *component)
 		goto error_pm;
 	}
 
-	pr_warn("%s: 3\n", __func__);
 	patch = (hda_codec_patch_t)hcodec->preset->driver_data;
 	if (patch) {
-		pr_warn("%s: 3.1\n", __func__);
 		ret = patch(hcodec);
 		if (ret < 0) {
 			dev_err(&hdev->dev, "patch failed %d\n", ret);
@@ -473,7 +461,6 @@ static int hdac_hda_codec_probe(struct snd_soc_component *component)
 		dev_dbg(&hdev->dev, "no patch file found\n");
 	}
 
-	pr_warn("%s: 4\n", __func__);
 	ret = snd_hda_codec_parse_pcms(hcodec);
 	if (ret < 0) {
 		dev_err(&hdev->dev, "unable to map pcms to dai %d\n", ret);
@@ -507,7 +494,6 @@ static int hdac_hda_codec_probe(struct snd_soc_component *component)
 	pm_runtime_put(&hdev->dev);
 	pm_runtime_suspend(&hdev->dev);
 
-	pr_warn("%s: LEAVE\n", __func__);
 	return 0;
 
 error_patch:
@@ -597,7 +583,6 @@ static int hdac_hda_dev_probe(struct hdac_device *hdev)
 	struct hdac_ext_link *hlink;
 	int ret;
 
-	pr_warn("%s: ENTER\n", __func__);
 	/* hold the ref while we probe */
 	hlink = snd_hdac_ext_bus_get_hlink_by_name(hdev->bus, dev_name(&hdev->dev));
 	if (!hlink) {
@@ -617,7 +602,6 @@ static int hdac_hda_dev_probe(struct hdac_device *hdev)
 
 	snd_hdac_ext_bus_link_put(hdev->bus, hlink);
 
-	pr_warn("%s: LEAVE\n", __func__);
 	return ret;
 }
 

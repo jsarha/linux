@@ -210,20 +210,16 @@ static void dspless_hda_update_fe_stream(struct snd_sof_dev *sdev,
 {
 	struct snd_soc_pcm_runtime *fe_rtd = asoc_substream_to_rtd(fe_substream);
 	struct hdac_stream *fe_hstream = fe_substream->runtime->private_data;
-	struct snd_pcm_runtime *fe_runtime = fe_substream->runtime;
 	struct snd_soc_dai *fe_dai = asoc_rtd_to_cpu(fe_rtd, 0);
 	struct snd_soc_dai_driver *fe_dai_drv = fe_dai->driver;
 	struct snd_soc_pcm_stream *fe_stream, *be_stream;
 	struct snd_pcm_substream *be_substream;
 	struct snd_soc_dai_driver *be_dai_drv;
-	struct snd_pcm_runtime *be_runtime;
 	struct snd_soc_pcm_runtime *be_rtd;
 	struct hdac_stream *be_hstream;
 	struct snd_soc_dai *be_dai;
 	struct snd_soc_dpcm *dpcm;
 	bool found = false;
-
-	pr_warn("%s: ENTER\n", __func__);
 
 	for_each_dpcm_be(fe_rtd, fe_substream->stream, dpcm) {
 		be_substream = snd_soc_dpcm_get_substream(dpcm->be, fe_substream->stream);
@@ -238,21 +234,6 @@ static void dspless_hda_update_fe_stream(struct snd_sof_dev *sdev,
 	if (!found)
 		return;
 
-	be_runtime = be_substream->runtime;
-
-	pr_warn("%s: FE vs BE runtime: channels_min: %d vs %d\n", __func__,
-		fe_runtime->hw.channels_min, be_runtime->hw.channels_min);
-	pr_warn("%s: FE vs BE runtime: channels_max: %d vs %d\n", __func__,
-		fe_runtime->hw.channels_max, be_runtime->hw.channels_max);
-	pr_warn("%s: FE vs BE runtime: formats: %#llx vs %#llx\n", __func__,
-		fe_runtime->hw.formats, be_runtime->hw.formats);
-	pr_warn("%s: FE vs BE runtime: rates: %#x vs %#x\n", __func__,
-		fe_runtime->hw.rates, be_runtime->hw.rates);
-	pr_warn("%s: FE vs BE runtime: rate_min: %#x vs %#x\n", __func__,
-		fe_runtime->hw.rate_min, be_runtime->hw.rate_min);
-	pr_warn("%s: FE vs BE runtime: rate_max: %#x vs %#x\n", __func__,
-		fe_runtime->hw.rate_max, be_runtime->hw.rate_max);
-
 	be_rtd = asoc_substream_to_rtd(be_substream);
 	be_dai = asoc_rtd_to_cpu(be_rtd, 0);
 	be_dai_drv = be_dai->driver;
@@ -265,60 +246,11 @@ static void dspless_hda_update_fe_stream(struct snd_sof_dev *sdev,
 		be_stream = &be_dai_drv->capture;
 	}
 
-	pr_warn("%s: -----\n", __func__);
-	pr_warn("%s: FE vs BE cpu_dai_drv: channels_min: %d vs %d\n", __func__,
-		fe_stream->channels_min, be_stream->channels_min);
-	pr_warn("%s: FE vs BE cpu_dai_drv: channels_max: %d vs %d\n", __func__,
-		fe_stream->channels_max, be_stream->channels_max);
-	pr_warn("%s: FE vs BE cpu_dai_drv: formats: %#llx vs %#llx\n", __func__,
-		fe_stream->formats, be_stream->formats);
-	pr_warn("%s: FE vs BE cpu_dai_drv: rates: %#x vs %#x\n", __func__,
-		fe_stream->rates, be_stream->rates);
-	pr_warn("%s: FE vs BE cpu_dai_drv: rate_min: %#x vs %#x\n", __func__,
-		fe_stream->rate_min, be_stream->rate_min);
-	pr_warn("%s: FE vs BE cpu_dai_drv: rate_max: %#x vs %#x\n", __func__,
-		fe_stream->rate_max, be_stream->rate_max);
-	pr_warn("%s: FE vs BE cpu_dai_drv: sig_bits: %d vs %d\n", __func__,
-		fe_stream->sig_bits, be_stream->sig_bits);
-
-	if (sdev->dspless_mode_selected) {
-		fe_stream->channels_min = be_stream->channels_min;
-		fe_stream->channels_max = be_stream->channels_max;
-		fe_stream->rates = be_stream->rates;
-		fe_stream->rate_min = be_stream->rate_min;
-		fe_stream->rate_max = be_stream->rate_max;
-	}
-
-	be_dai = asoc_rtd_to_codec(be_rtd, 0);
-	be_dai_drv = be_dai->driver;
-	fe_dai = asoc_rtd_to_codec(fe_rtd, 0);
-	fe_dai_drv = fe_dai->driver;
-
-	if (fe_substream->stream == SNDRV_PCM_STREAM_PLAYBACK) {
-		fe_stream = &fe_dai_drv->playback;
-		be_stream = &be_dai_drv->playback;
-	} else {
-		fe_stream = &fe_dai_drv->capture;
-		be_stream = &be_dai_drv->capture;
-	}
-
-	pr_warn("%s: -----\n", __func__);
-	pr_warn("%s: FE vs BE codec_dai_drv: channels_min: %d vs %d\n", __func__,
-		fe_stream->channels_min, be_stream->channels_min);
-	pr_warn("%s: FE vs BE codec_dai_drv: channels_max: %d vs %d\n", __func__,
-		fe_stream->channels_max, be_stream->channels_max);
-	pr_warn("%s: FE vs BE codec_dai_drv: formats: %#llx vs %#llx\n", __func__,
-		fe_stream->formats, be_stream->formats);
-	pr_warn("%s: FE vs BE codec_dai_drv: rates: %#x vs %#x\n", __func__,
-		fe_stream->rates, be_stream->rates);
-	pr_warn("%s: FE vs BE codec_dai_drv: rate_min: %#x vs %#x\n", __func__,
-		fe_stream->rate_min, be_stream->rate_min);
-	pr_warn("%s: FE vs BE codec_dai_drv: rate_max: %#x vs %#x\n", __func__,
-		fe_stream->rate_max, be_stream->rate_max);
-	pr_warn("%s: FE vs BE codec_dai_drv: sig_bits: %d vs %d\n", __func__,
-		fe_stream->sig_bits, be_stream->sig_bits);
-
-	pr_warn("%s: DONE\n", __func__);
+	fe_stream->channels_min = be_stream->channels_min;
+	fe_stream->channels_max = be_stream->channels_max;
+	fe_stream->rates = be_stream->rates;
+	fe_stream->rate_min = be_stream->rate_min;
+	fe_stream->rate_max = be_stream->rate_max;
 }
 
 int hda_dsp_pcm_open(struct snd_sof_dev *sdev,
@@ -332,7 +264,6 @@ int hda_dsp_pcm_open(struct snd_sof_dev *sdev,
 	int direction = substream->stream;
 	u32 flags = 0;
 
-	pr_warn("%s: ENTER\n", __func__);
 	spcm = snd_sof_find_spcm_dai(scomp, rtd);
 	if (!spcm) {
 		dev_err(sdev->dev, "error: can't find PCM with DAI ID %d\n", rtd->dai_link->id);
@@ -374,13 +305,13 @@ int hda_dsp_pcm_open(struct snd_sof_dev *sdev,
 	/* binding pcm substream to hda stream */
 	substream->runtime->private_data = &dsp_stream->hstream;
 
-	dspless_hda_update_fe_stream(sdev, substream);
+	if (sdev->dspless_mode_selected) {
+		dspless_hda_update_fe_stream(sdev, substream);
 
-	if (sdev->dspless_mode_selected)
 		/* Only S16 and S32 supported by HDA hardware when used without DSP */
 		snd_pcm_hw_constraint_mask64(substream->runtime, SNDRV_PCM_HW_PARAM_FORMAT,
 					     SNDRV_PCM_FMTBIT_S16 | SNDRV_PCM_FMTBIT_S32);
-
+	}
 
 	return 0;
 }

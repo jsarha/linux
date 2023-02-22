@@ -544,7 +544,6 @@ static void soc_pcm_hw_init(struct snd_pcm_hardware *hw)
 static void soc_pcm_hw_update_rate(struct snd_pcm_hardware *hw,
 				   struct snd_soc_pcm_stream *p)
 {
-	pr_warn("%s: rates: %d vs %d\n", __func__, hw->rates, p->rates);
 	hw->rates = snd_pcm_rate_mask_intersect(hw->rates, p->rates);
 
 	/* setup hw->rate_min/max via hw->rates first */
@@ -558,7 +557,6 @@ static void soc_pcm_hw_update_rate(struct snd_pcm_hardware *hw,
 static void soc_pcm_hw_update_chan(struct snd_pcm_hardware *hw,
 				   struct snd_soc_pcm_stream *p)
 {
-	pr_warn("%s: channels_max: %d vs %d\n", __func__, hw->channels_max, p->channels_max);
 	hw->channels_min = max(hw->channels_min, p->channels_min);
 	hw->channels_max = min(hw->channels_max, p->channels_max);
 }
@@ -566,7 +564,6 @@ static void soc_pcm_hw_update_chan(struct snd_pcm_hardware *hw,
 static void soc_pcm_hw_update_format(struct snd_pcm_hardware *hw,
 				     struct snd_soc_pcm_stream *p)
 {
-	pr_warn("%s: formats: %#llx vs %#llx\n", __func__, hw->formats, p->formats);
 	hw->formats &= p->formats;
 }
 
@@ -655,8 +652,6 @@ static void soc_pcm_init_runtime_hw(struct snd_pcm_substream *substream)
 	struct snd_soc_pcm_runtime *rtd = asoc_substream_to_rtd(substream);
 	u64 formats = hw->formats;
 
-	pr_warn("%s: formats(1): %#llx\n", __func__, hw->formats);
-	pr_warn("%s: rates(1): %#x\n", __func__, hw->rates);
 	/*
 	 * At least one CPU and one CODEC should match. Otherwise, we should
 	 * have bailed out on a higher level, since there would be no CPU or
@@ -666,8 +661,6 @@ static void soc_pcm_init_runtime_hw(struct snd_pcm_substream *substream)
 
 	if (formats)
 		hw->formats &= formats;
-	pr_warn("%s: formats(2): %#llx\n", __func__, hw->formats);
-	pr_warn("%s: rates(2): %#x\n", __func__, hw->rates);
 }
 
 static int soc_pcm_components_open(struct snd_pcm_substream *substream)

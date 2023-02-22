@@ -1558,19 +1558,6 @@ static int set_stream_info(struct soc_tplg *tplg, struct snd_soc_pcm_stream *str
 	stream->formats = le64_to_cpu(caps->formats);
 	stream->sig_bits = le32_to_cpu(caps->sig_bits);
 
-	pr_warn("%s: channels_min: %d\n", __func__, stream->channels_min);
-	pr_warn("%s: channels_max: %d\n", __func__, stream->channels_max);
-	pr_warn("%s: formats: %#llx\n", __func__, stream->formats);
-	if (stream->formats == 0x404) {
-		stream->formats = 0x40404;
-	pr_warn("%s: nevermind: formats: %#llx\n", __func__, stream->formats);
-	}
-	pr_warn("%s: rates: %#x\n", __func__, stream->rates);
-
-	pr_warn("%s: rate_min: %d\n", __func__, stream->rate_min);
-	pr_warn("%s: rate_max: %d\n", __func__, stream->rate_max);
-	pr_warn("%s: sig_bits: %d\n", __func__, stream->sig_bits);
-
 	return 0;
 }
 
@@ -1616,7 +1603,6 @@ static int soc_tplg_dai_create(struct soc_tplg *tplg,
 	}
 	dai_drv->id = le32_to_cpu(pcm->dai_id);
 
-	pr_warn("%s: ENTER: dai_name: %s\n", __func__, pcm->dai_name);
 	if (pcm->playback) {
 		stream = &dai_drv->playback;
 		caps = &pcm->caps[SND_SOC_TPLG_STREAM_PLAYBACK];
@@ -1662,7 +1648,6 @@ static int soc_tplg_dai_create(struct soc_tplg *tplg,
 		return ret;
 	}
 
-	pr_warn("%s: LEAVE: dai_name: %s\n", __func__, pcm->dai_name);
 	return 0;
 
 err:
@@ -2232,7 +2217,6 @@ static int soc_tplg_dai_config(struct soc_tplg *tplg,
 	if (!dai_drv)
 		return -EINVAL;
 
-	pr_warn("%s: ENTER: dai_name: %s\n", __func__, d->dai_name);
 	if (d->playback) {
 		stream = &dai_drv->playback;
 		caps = &d->caps[SND_SOC_TPLG_STREAM_PLAYBACK];
@@ -2261,7 +2245,6 @@ static int soc_tplg_dai_config(struct soc_tplg *tplg,
 		goto err;
 	}
 
-	pr_warn("%s: LEAVE: dai_name: %s\n", __func__, d->dai_name);
 	return 0;
 
 err:

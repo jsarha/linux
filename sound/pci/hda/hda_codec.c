@@ -964,7 +964,6 @@ int snd_hda_codec_new(struct hda_bus *bus, struct snd_card *card,
 	struct hda_codec *codec;
 	int ret;
 
-	pr_warn("%s: ENTER\n", __func__);
 	codec = snd_hda_codec_device_init(bus, codec_addr, "hdaudioC%dD%d",
 					  card->number, codec_addr);
 	if (IS_ERR(codec))
@@ -991,7 +990,6 @@ int snd_hda_codec_device_new(struct hda_bus *bus, struct snd_card *card,
 		.dev_free = snd_hda_codec_dev_free,
 	};
 
-	pr_warn("%s: ENTER\n", __func__);
 	dev_dbg(card->dev, "%s: entry\n", __func__);
 
 	if (snd_BUG_ON(!bus))
@@ -1051,7 +1049,6 @@ int snd_hda_codec_device_new(struct hda_bus *bus, struct snd_card *card,
 		pm_runtime_get_noresume(&codec->core.dev);
 #endif
 
-	pr_warn("%s: LEAVE\n", __func__);
 	return 0;
 }
 EXPORT_SYMBOL_GPL(snd_hda_codec_device_new);
@@ -3159,7 +3156,6 @@ static int set_pcm_default_values(struct hda_codec *codec,
 {
 	int err;
 
-	pr_warn("%s: ENTER\n", __func__);
 	/* query support PCM information from the given NID */
 	if (info->nid && (!info->rates || !info->formats)) {
 		err = snd_hda_query_supported_pcm(codec, info->nid,
@@ -3183,7 +3179,6 @@ static int set_pcm_default_values(struct hda_codec *codec,
 			return -EINVAL;
 		info->ops.cleanup = hda_pcm_default_cleanup;
 	}
-	pr_warn("%s: LEAVE\n", __func__);
 	return 0;
 }
 
@@ -3299,7 +3294,6 @@ int snd_hda_codec_parse_pcms(struct hda_codec *codec)
 	struct hda_pcm *cpcm;
 	int err;
 
-	pr_warn("%s: ENTER\n", __func__);
 	if (!list_empty(&codec->pcm_list_head))
 		return 0; /* already parsed */
 
@@ -3331,7 +3325,6 @@ int snd_hda_codec_parse_pcms(struct hda_codec *codec)
 		}
 	}
 
-	pr_warn("%s: LEAVE\n", __func__);
 	return 0;
 }
 EXPORT_SYMBOL_GPL(snd_hda_codec_parse_pcms);
@@ -3747,7 +3740,6 @@ int snd_hda_multi_out_analog_open(struct hda_codec *codec,
 				  struct hda_pcm_stream *hinfo)
 {
 	struct snd_pcm_runtime *runtime = substream->runtime;
-	pr_warn("%s: ENTER\n", __func__);
 	runtime->hw.channels_max = mout->max_channels;
 	if (mout->dig_out_nid) {
 		if (!mout->analog_rates) {
@@ -3780,13 +3772,6 @@ int snd_hda_multi_out_analog_open(struct hda_codec *codec,
 		}
 		mutex_unlock(&codec->spdif_mutex);
 	}
-	pr_warn("%s: channels_min: %d\n", __func__, runtime->hw.channels_min);
-	pr_warn("%s: channels_max: %d\n", __func__, runtime->hw.channels_max);
-	pr_warn("%s: formats: %#llx\n", __func__, runtime->hw.formats);
-	pr_warn("%s: rates: %#x\n", __func__, runtime->hw.rates);
-	pr_warn("%s: rate_min: %d\n", __func__, runtime->hw.rate_min);
-	pr_warn("%s: rate_max: %d\n", __func__, runtime->hw.rate_max);
-
 	return snd_pcm_hw_constraint_step(substream->runtime, 0,
 					  SNDRV_PCM_HW_PARAM_CHANNELS, 2);
 }

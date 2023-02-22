@@ -592,8 +592,6 @@ void snd_hdmi_eld_update_pcm_info(struct parsed_hdmi_eld *e,
 		}
 	}
 
-	pr_warn("%s: formats: %#llx vs %#llx\n", __func__, hinfo->formats, formats);
-	pr_warn("%s: rates: %d vs %d\n", __func__, hinfo->rates, rates);
 	/* restrict the parameters by the values the codec provides */
 	hinfo->rates &= rates;
 	hinfo->formats &= formats;

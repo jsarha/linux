@@ -460,11 +460,6 @@ static int sof_pcm_open(struct snd_soc_component *component,
 	spcm->stream[substream->stream].substream = substream;
 	spcm->prepared[substream->stream] = false;
 
-	pr_warn("%s: channels_min: %d\n", __func__, runtime->hw.channels_min);
-	pr_warn("%s: channels_max: %d\n", __func__, runtime->hw.channels_max);
-	pr_warn("%s: formats: %#llx\n", __func__, runtime->hw.formats);
-	pr_warn("%s: rates: %#x\n", __func__, runtime->hw.rates);
-
 	ret = snd_sof_pcm_platform_open(sdev, substream);
 	if (ret < 0)
 		dev_err(component->dev, "error: pcm open failed %d\n", ret);

@@ -172,8 +172,6 @@ static int hda_codec_probe(struct snd_sof_dev *sdev, int address)
 	dev_set_drvdata(&codec->core.dev, hda_priv);
 
 	if ((resp & 0xFFFF0000) == IDISP_VID_INTEL) {
-		struct hda_spdif_out *spdif;
-
 		if (!hbus->core.audio_component) {
 			dev_dbg(sdev->dev,
 				"iDisp hw present but no driver\n");
@@ -181,13 +179,6 @@ static int hda_codec_probe(struct snd_sof_dev *sdev, int address)
 			goto out;
 		}
 		hda_priv->need_display_power = true;
-
-		spdif = snd_hda_spdif_out_of_nid(codec, 3);
-		if (spdif) {
-			pr_warn("%s: spdif's ctls: %#x\n", __func__, spdif->ctls);
-		} else {
-			pr_warn("%s: no spdif\n", __func__);
-		}
 	}
 
 	if (is_generic_config(hbus))
