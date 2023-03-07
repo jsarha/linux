@@ -91,6 +91,7 @@
 #define SOF_TKN_COMP_NUM_AUDIO_FORMATS		410
 #define SOF_TKN_COMP_NUM_INPUT_PINS		411
 #define SOF_TKN_COMP_NUM_OUTPUT_PINS		412
+
 /*
  * The token for input/output pin binding, it specifies the widget
  * name that the input/output pin is connected from/to.
@@ -100,6 +101,11 @@
 #define SOF_TKN_COMP_NUM_INPUT_AUDIO_FORMATS	415
 #define SOF_TKN_COMP_NUM_OUTPUT_AUDIO_FORMATS	416
 
+/*
+ * The token value is copied to the dapm_widget's
+ * no_wname_in_kcontrol_name.
+ */
+#define SOF_TKN_COMP_NO_WNAME_IN_KCONTROL_NAME	417
 
 /* SSP */
 #define SOF_TKN_INTEL_SSP_CLKS_CONTROL		500

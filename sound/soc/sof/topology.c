@@ -809,6 +809,68 @@ static int sof_parse_tokens(struct snd_soc_component *scomp,  void *object,
 				    array_size, 1, 0);
 }
 
+static int sof_w_no_wname_in_long_name(struct snd_soc_component *scomp,
+				       struct snd_soc_dapm_widget *w, int type,
+				       struct snd_soc_tplg_vendor_value_elem *v)
+{
+	if (!(type == SND_SOC_TPLG_TUPLE_TYPE_WORD ||
+	      type == SND_SOC_TPLG_TUPLE_TYPE_SHORT ||
+	      type == SND_SOC_TPLG_TUPLE_TYPE_BYTE ||
+	      type == SND_SOC_TPLG_TUPLE_TYPE_BOOL)) {
+		dev_err(scomp->dev, "Bad tuple type %d\n", type);
+		return -EINVAL;
+	}
+
+	w->no_wname_in_kcontrol_name = le32_to_cpu(v->token);
+
+	return 0;
+}
+
+static int sof_dapm_widget_init(struct snd_soc_component *scomp,
+				struct snd_soc_dapm_widget *w,
+				struct snd_soc_tplg_vendor_array *array,
+				int array_size)
+{
+	while (array_size > 0) {
+		int asize, type, i;
+
+		asize = le32_to_cpu(array->size);
+
+		/* validate asize */
+		if (asize <= 0) {
+			dev_err(scomp->dev, "error: invalid array size 0x%x\n",
+				asize);
+			return -EINVAL;
+		}
+
+		/* make sure there is enough data before parsing */
+		array_size -= asize;
+		if (array_size < 0) {
+			dev_err(scomp->dev, "error: invalid array size 0x%x\n",
+				asize);
+			return -EINVAL;
+		}
+		type = le32_to_cpu(array->type);
+
+		for (i = 0; i < le32_to_cpu(array->num_elems); i++) {
+			int ret = 0;
+
+			switch (le32_to_cpu(array->value[i].token)) {
+			case SOF_TKN_COMP_NO_WNAME_IN_KCONTROL_NAME:
+				ret = sof_w_no_wname_in_long_name(scomp, w, type,
+								  &array->value[i]);
+				break;
+			}
+			if (ret != 0)
+				return ret;
+		}
+
+		/* next array */
+		array = (struct snd_soc_tplg_vendor_array *)((u8 *)array + asize);
+	}
+	return 0;
+}
+
 /*
  * Standard Kcontrols.
  */
@@ -1395,6 +1457,10 @@ static int sof_widget_ready(struct snd_soc_component *scomp, int index,
 
 	ida_init(&swidget->output_queue_ida);
 	ida_init(&swidget->input_queue_ida);
+
+	ret = sof_dapm_widget_init(scomp, w, priv->array, le32_to_cpu(priv->size));
+	if (ret < 0)
+		goto widget_free;
 
 	ret = sof_parse_tokens(scomp, swidget, comp_pin_tokens,
 			       ARRAY_SIZE(comp_pin_tokens), priv->array,
