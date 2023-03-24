@@ -1108,6 +1108,9 @@ static int sof_ipc4_init_audio_fmt(struct snd_sof_dev *sdev,
 	if (available_fmt->num_output_formats && i < available_fmt->num_output_formats)
 		base_config->obs = available_fmt->output_pin_fmts[i].buffer_size;
 
+	/* Update the base configuration from the module manifest */
+	sof_ipc4_update_basecfg_from_manifest(sdev, swidget->module_info, base_config);
+
 	/* Return the index of the matched format */
 	return i;
 }
