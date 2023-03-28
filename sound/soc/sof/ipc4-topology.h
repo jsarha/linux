@@ -333,7 +333,7 @@ struct sof_ipc4_copier {
 	uint32_t ipc_config_size;
 	void *ipc_config_data;
 	struct sof_ipc4_available_audio_format available_fmt;
-	struct sof_ipc4_tplg_module_config mod_cfg;
+	struct sof_ipc4_tplg_module_config *mod_cfg;
 	u32 frame_fmt;
 	struct sof_ipc4_msg msg;
 	struct sof_ipc4_gtw_attributes *gtw_attr;
@@ -399,7 +399,7 @@ struct sof_ipc4_gain {
 	struct sof_ipc4_base_module_cfg base_config;
 	struct sof_ipc4_gain_data data;
 	struct sof_ipc4_available_audio_format available_fmt;
-	struct sof_ipc4_tplg_module_config mod_cfg;
+	struct sof_ipc4_tplg_module_config *mod_cfg;
 	struct sof_ipc4_msg msg;
 };
 
@@ -413,7 +413,7 @@ struct sof_ipc4_gain {
 struct sof_ipc4_mixer {
 	struct sof_ipc4_base_module_cfg base_config;
 	struct sof_ipc4_available_audio_format available_fmt;
-	struct sof_ipc4_tplg_module_config mod_cfg;
+	struct sof_ipc4_tplg_module_config *mod_cfg;
 	struct sof_ipc4_msg msg;
 };
 
@@ -429,7 +429,7 @@ struct sof_ipc4_src {
 	struct sof_ipc4_base_module_cfg base_config;
 	uint32_t sink_rate;
 	struct sof_ipc4_available_audio_format available_fmt;
-	struct sof_ipc4_tplg_module_config mod_cfg;
+	struct sof_ipc4_tplg_module_config *mod_cfg;
 	struct sof_ipc4_msg msg;
 };
 
@@ -468,7 +468,7 @@ struct sof_ipc4_process {
 	struct sof_ipc4_base_module_cfg_ext *base_config_ext;
 	struct sof_ipc4_audio_format output_format;
 	struct sof_ipc4_available_audio_format available_fmt;
-	struct sof_ipc4_tplg_module_config mod_cfg;
+	struct sof_ipc4_tplg_module_config *mod_cfg;
 	void *ipc_config_data;
 	uint32_t ipc_config_size;
 	struct sof_ipc4_msg msg;

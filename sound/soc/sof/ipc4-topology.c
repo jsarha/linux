@@ -133,8 +133,7 @@ static const struct sof_topology_token src_tokens[] = {
 
 /* module configuration */
 static const struct sof_topology_token ipc4_mod_cfg_num_tokens[] = {
-	{SOF_TKN_COMP_NUM_MOD_CFGS, SND_SOC_TPLG_TUPLE_TYPE_WORD, get_token_u32,
-		offsetof(struct sof_ipc4_tplg_module_config, num_mod_cfgs)},
+	{SOF_TKN_COMP_NUM_MOD_CFGS, SND_SOC_TPLG_TUPLE_TYPE_WORD, get_token_u32, 0},
 };
 
 static const struct sof_topology_token ipc4_mod_cfg_tokens[] = {
@@ -173,6 +172,49 @@ static const struct sof_token_info ipc4_token_list[SOF_TOKEN_COUNT] = {
 	[SOF_MOD_CFG_TOKENS] = {"IPC4 module configuration tokens",
 		ipc4_mod_cfg_tokens, ARRAY_SIZE(ipc4_mod_cfg_tokens)},
 };
+
+static int sof_ipc4_get_tplg_mod_cfg(struct snd_soc_component *scomp,
+				     struct snd_sof_widget *swidget,
+				     struct sof_ipc4_tplg_module_config **cfg)
+{
+	u32 num_mod_cfgs = 0;
+	int ret;
+	int i;
+
+	ret = sof_update_ipc_object(scomp, &num_mod_cfgs,
+				    SOF_MOD_CFG_NUM_TOKENS, swidget->tuples,
+				    swidget->num_tuples, sizeof(u32), 1);
+
+	dev_info(scomp->dev, "Got %u num_mod_cfgs for %s\n", num_mod_cfgs,
+		 swidget->widget->name);
+	if (num_mod_cfgs == 0)
+		return 0;
+
+	*cfg = kzalloc(sizeof(*cfg) + num_mod_cfgs * sizeof((*cfg)->mod_cfgs[0]), GFP_KERNEL);
+	if (!*cfg)
+		return -ENOMEM;
+
+	ret = sof_update_ipc_object(scomp, (*cfg)->mod_cfgs,
+				    SOF_MOD_CFG_TOKENS, swidget->tuples,
+				    swidget->num_tuples, sizeof((*cfg)->mod_cfgs[0]),
+				    num_mod_cfgs);
+	if (ret) {
+		dev_err(scomp->dev, "parse %s module config tokens failed %d\n",
+			swidget->widget->name, ret);
+		kfree(*cfg);
+		*cfg = NULL;
+		return ret;
+	}
+	(*cfg)->num_mod_cfgs = num_mod_cfgs;
+
+
+	for (i = 0; i < num_mod_cfgs; i++)
+		dev_info(scomp->dev, "\t%u:\tibs %u\tobs %u\tcpc %u\n", i,
+			 (*cfg)->mod_cfgs[i].ibs, (*cfg)->mod_cfgs[i].obs,
+			 (*cfg)->mod_cfgs[i].cpc);
+
+	return 0;
+}
 
 static void sof_ipc4_dbg_audio_format(struct device *dev, struct sof_ipc4_pin_format *pin_fmt,
 				      int num_formats)
@@ -411,6 +453,10 @@ static int sof_ipc4_widget_setup_pcm(struct snd_sof_widget *swidget)
 
 	dev_dbg(scomp->dev, "Updating IPC structure for %s\n", swidget->widget->name);
 
+	ret = sof_ipc4_get_tplg_mod_cfg(scomp, swidget, &ipc4_copier->mod_cfg);
+	if (ret)
+		goto free_copier;
+
 	ret = sof_ipc4_get_audio_fmt(scomp, swidget, available_fmt,
 				     &ipc4_copier->data.base_config);
 	if (ret)
@@ -472,6 +518,7 @@ free_gtw_attr:
 free_available_fmt:
 	sof_ipc4_free_audio_fmt(available_fmt);
 free_copier:
+	kfree(ipc4_copier->mod_cfg);
 	kfree(ipc4_copier);
 	swidget->private = NULL;
 	return ret;
@@ -731,6 +778,10 @@ static int sof_ipc4_widget_setup_comp_pga(struct snd_sof_widget *swidget)
 	gain->data.channels = SOF_IPC4_GAIN_ALL_CHANNELS_MASK;
 	gain->data.init_val = SOF_IPC4_VOL_ZERO_DB;
 
+	ret = sof_ipc4_get_tplg_mod_cfg(scomp, swidget, &gain->mod_cfg);
+	if (ret)
+		goto err;
+
 	ret = sof_ipc4_get_audio_fmt(scomp, swidget, &gain->available_fmt, &gain->base_config);
 	if (ret)
 		goto err;
@@ -755,6 +806,7 @@ static int sof_ipc4_widget_setup_comp_pga(struct snd_sof_widget *swidget)
 
 	return 0;
 err:
+	kfree(gain->mod_cfg);
 	sof_ipc4_free_audio_fmt(&gain->available_fmt);
 	kfree(gain);
 	swidget->private = NULL;
@@ -787,6 +839,10 @@ static int sof_ipc4_widget_setup_comp_mixer(struct snd_sof_widget *swidget)
 
 	swidget->private = mixer;
 
+	ret = sof_ipc4_get_tplg_mod_cfg(scomp, swidget, &mixer->mod_cfg);
+	if (ret)
+		goto err;
+
 	ret = sof_ipc4_get_audio_fmt(scomp, swidget, &mixer->available_fmt,
 				     &mixer->base_config);
 	if (ret)
@@ -798,6 +854,7 @@ static int sof_ipc4_widget_setup_comp_mixer(struct snd_sof_widget *swidget)
 
 	return 0;
 err:
+	kfree(mixer->mod_cfg);
 	sof_ipc4_free_audio_fmt(&mixer->available_fmt);
 	kfree(mixer);
 	swidget->private = NULL;
@@ -818,6 +875,10 @@ static int sof_ipc4_widget_setup_comp_src(struct snd_sof_widget *swidget)
 
 	swidget->private = src;
 
+	ret = sof_ipc4_get_tplg_mod_cfg(scomp, swidget, &src->mod_cfg);
+	if (ret)
+		goto err;
+
 	ret = sof_ipc4_get_audio_fmt(scomp, swidget, &src->available_fmt, &src->base_config);
 	if (ret)
 		goto err;
@@ -837,6 +898,7 @@ static int sof_ipc4_widget_setup_comp_src(struct snd_sof_widget *swidget)
 
 	return 0;
 err:
+	kfree(src->mod_cfg);
 	sof_ipc4_free_audio_fmt(&src->available_fmt);
 	kfree(src);
 	swidget->private = NULL;
@@ -883,6 +945,10 @@ static int sof_ipc4_widget_setup_comp_process(struct snd_sof_widget *swidget)
 		return -ENOMEM;
 
 	swidget->private = process;
+
+	ret = sof_ipc4_get_tplg_mod_cfg(scomp, swidget, &process->mod_cfg);
+	if (ret)
+		goto err;
 
 	ret = sof_ipc4_get_audio_fmt(scomp, swidget, &process->available_fmt,
 				     &process->base_config);
@@ -936,6 +1002,7 @@ free_base_cfg_ext:
 free_available_fmt:
 	sof_ipc4_free_audio_fmt(&process->available_fmt);
 err:
+	kfree(process->mod_cfg);
 	kfree(process);
 	swidget->private = NULL;
 	return ret;
