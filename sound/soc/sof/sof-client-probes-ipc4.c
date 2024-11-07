@@ -125,7 +125,8 @@ static int ipc4_probes_init(struct sof_client_dev *cdev, u32 stream_tag,
 	msg.primary |= SOF_IPC4_MSG_TARGET(SOF_IPC4_MODULE_MSG);
 	msg.extension = SOF_IPC4_MOD_EXT_DST_MOD_INSTANCE(INVALID_PIPELINE_ID);
 	msg.extension |= SOF_IPC4_MOD_EXT_CORE_ID(0);
-	msg.extension |= SOF_IPC4_MOD_EXT_PARAM_SIZE(sizeof(cfg)/sizeof(uint32_t));
+	msg.extension |= SOF_IPC4_MOD_EXT_PARAM_SIZE(DIV_ROUND_UP(sizeof(cfg),
+								  sizeof(u32)));
 
 	msg.data_size = sizeof(cfg);
 	msg.data_ptr = &cfg;
@@ -225,6 +226,8 @@ static int ipc4_probes_points_add(struct sof_client_dev *cdev,
 	msg.primary |= SOF_IPC4_MSG_TARGET(SOF_IPC4_MODULE_MSG);
 
 	msg.extension = SOF_IPC4_MOD_EXT_MSG_PARAM_ID(SOF_IPC4_PROBE_POINTS);
+	msg.extension |= SOF_IPC4_MOD_EXT_PARAM_SIZE(
+		DIV_ROUND_UP(sizeof(*points) * num_desc, sizeof(u32)));
 
 	msg.data_size = sizeof(*points) * num_desc;
 	msg.data_ptr = points;
@@ -271,6 +274,8 @@ static int ipc4_probes_points_remove(struct sof_client_dev *cdev,
 
 	msg.extension =
 		SOF_IPC4_MOD_EXT_MSG_PARAM_ID(SOF_IPC4_PROBE_POINTS_DISCONNECT);
+	msg.extension |= SOF_IPC4_MOD_EXT_PARAM_SIZE(
+		DIV_ROUND_UP(num_buffer_id * sizeof(*probe_point_ids), sizeof(u32)));
 
 	msg.data_size = num_buffer_id * sizeof(*probe_point_ids);
 	msg.data_ptr = probe_point_ids;
