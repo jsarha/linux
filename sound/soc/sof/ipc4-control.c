@@ -649,6 +649,130 @@ sof_ipc4_volsw_setup(struct snd_sof_dev *sdev, struct snd_sof_widget *swidget,
 	return sof_ipc4_set_volume_data(sdev, swidget, scontrol, false);
 }
 
+struct sof_ipc4_kcontrol_global_priv {
+	struct snd_card *snd_card;
+	struct snd_kcontrol *capture_hw_mute;
+};
+
+static int sof_ipc4_capture_hw_mute_get(struct snd_kcontrol *kcontrol,
+					struct snd_ctl_elem_value *ucontrol)
+{
+	ucontrol->value.integer.value[0] = kcontrol->private_value;
+	return 0;
+}
+
+static const struct snd_kcontrol_new sof_ipc4_capture_hw_mute = {
+	.iface = SNDRV_CTL_ELEM_IFACE_MIXER,
+	.access = SNDRV_CTL_ELEM_ACCESS_READ,
+	.name = "Global capture HW mute indicator",
+	.info = snd_ctl_boolean_mono_info,
+	.get = sof_ipc4_capture_hw_mute_get,
+};
+
+static struct snd_card *sof_scomp_get_card(struct snd_soc_component *scomp)
+{
+	struct device *dev = scomp->dev;
+
+	if (!scomp->card) {
+		dev_err(dev, "%s: No snd_soc_card", __func__);
+		return NULL;
+	}
+
+	return scomp->card->snd_card;
+}
+
+static int sof_ipc4_create_non_topology_controls(struct snd_sof_dev *sdev,
+						 struct snd_soc_component *scomp)
+{
+	struct sof_ipc4_fw_data *ipc4_data = sdev->private;
+	struct snd_card *snd_card = sof_scomp_get_card(scomp);
+	struct device *dev = sdev->dev;
+	struct sof_ipc4_kcontrol_global_priv *priv;
+	int ret;
+
+	if (!snd_card) {
+		dev_err(dev, "%s: Card not found!", __func__);
+		return -ENODEV;
+	}
+
+	if (!ipc4_data->global_kcontrol_mask)
+		return 0;
+
+	priv = devm_kzalloc(dev, sizeof(*priv), GFP_KERNEL);
+	if (!priv)
+		return -ENOMEM;
+
+	priv->snd_card = snd_card;
+
+	if (ipc4_data->global_kcontrol_mask &
+	    BIT(SOF_IPC4_KCONTROL_GLOBAL_CAPTURE_HW_MUTE)) {
+		struct snd_kcontrol *kctl;
+
+		kctl = snd_ctl_new1(&sof_ipc4_capture_hw_mute, NULL);
+		if (!kctl) {
+			dev_err(dev, "%s: snd_ctl_new1(): failed", __func__);
+			return -EINVAL;
+		}
+
+		kctl->private_value = 0;
+
+		ret = snd_ctl_add(snd_card, kctl);
+		if (ret < 0)
+			dev_err(dev, "%s: snd_ctl_add(): failed", __func__);
+		else
+			priv->capture_hw_mute = kctl;
+	}
+
+	ipc4_data->global_kcontrol_priv = priv;
+
+	return 0;
+}
+
+static void snd_ipc4_global_capture_hw_mute_report(struct snd_sof_dev *sdev,
+						   bool status)
+{
+	struct sof_ipc4_fw_data *ipc4_data = sdev->private;
+	struct sof_ipc4_kcontrol_global_priv *priv = ipc4_data->global_kcontrol_priv;
+	struct device *dev = sdev->dev;
+	struct snd_kcontrol *kctl;
+
+	if (!priv || !priv->capture_hw_mute)
+		return;
+
+	kctl = priv->capture_hw_mute;
+
+	dev_dbg(dev, "%s: reporting %u, old %lu", __func__,
+		status, kctl->private_value);
+
+	if (kctl->private_value == status)
+		return;
+
+	kctl->private_value = status;
+	snd_ctl_notify(priv->snd_card, SNDRV_CTL_EVENT_MASK_VALUE, &kctl->id);
+}
+
+static void snd_ipc4_handle_global_event(struct snd_sof_dev *sdev,
+					 struct sof_ipc4_control_msg_payload *msg_data)
+{
+	struct device *dev = sdev->dev;
+
+	dev_dbg(dev, "%s: got msg id %u num_elems %u", __func__,
+		msg_data->id, msg_data->num_elems);
+
+	switch (msg_data->id) {
+	case SOF_IPC4_KCONTROL_GLOBAL_CAPTURE_HW_MUTE:
+		if (msg_data->num_elems == 1 || msg_data->chanv[0].channel == 0)
+			snd_ipc4_global_capture_hw_mute_report(sdev, msg_data->chanv[0].value);
+		else
+			dev_warn(dev, "%s: bad data for id %u chan 0 %u", __func__,
+				 msg_data->id, msg_data->chanv[0].channel);
+		break;
+	default:
+		dev_warn(dev, "%s: unknown global control elem id %u", __func__,
+			 msg_data->id);
+	}
+}
+
 #define PARAM_ID_FROM_EXTENSION(_ext)	(((_ext) & SOF_IPC4_MOD_EXT_MSG_PARAM_ID_MASK)	\
 					 >> SOF_IPC4_MOD_EXT_MSG_PARAM_ID_SHIFT)
 
@@ -673,6 +797,7 @@ static void sof_ipc4_control_update(struct snd_sof_dev *sdev, void *ipc_message)
 			ndata->event_data_size);
 		return;
 	}
+	msg_data = (struct sof_ipc4_control_msg_payload *)ndata->event_data;
 
 	event_param_id = ndata->event_id & SOF_IPC4_NOTIFY_MODULE_EVENTID_ALSA_PARAMID_MASK;
 	switch (event_param_id) {
@@ -690,6 +815,14 @@ static void sof_ipc4_control_update(struct snd_sof_dev *sdev, void *ipc_message)
 		return;
 	}
 
+	if (ndata->module_id == SOF_IPC4_MOD_INIT_BASEFW_MOD_ID &&
+	    ndata->instance_id == SOF_IPC4_MOD_INIT_BASEFW_INSTANCE_ID) {
+		dev_dbg(sdev->dev, "Received global notifier event_id %#x",
+			event_param_id);
+		snd_ipc4_handle_global_event(sdev, msg_data);
+		return;
+	}
+
 	/* Find the swidget based on ndata->module_id and ndata->instance_id */
 	swidget = sof_ipc4_find_swidget_by_ids(sdev, ndata->module_id,
 					       ndata->instance_id);
@@ -700,7 +833,6 @@ static void sof_ipc4_control_update(struct snd_sof_dev *sdev, void *ipc_message)
 	}
 
 	/* Find the scontrol which is the source of the notification */
-	msg_data = (struct sof_ipc4_control_msg_payload *)ndata->event_data;
 	list_for_each_entry(scontrol, &sdev->kcontrol_list, list) {
 		if (scontrol->comp_id == swidget->comp_id) {
 			u32 local_param_id;
@@ -855,4 +987,5 @@ const struct sof_ipc_tplg_control_ops tplg_ipc4_control_ops = {
 	.update = sof_ipc4_control_update,
 	.widget_kcontrol_setup = sof_ipc4_widget_kcontrol_setup,
 	.set_up_volume_table = sof_ipc4_set_up_volume_table,
+	.create_non_topology_controls = sof_ipc4_create_non_topology_controls,
 };
