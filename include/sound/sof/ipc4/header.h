@@ -567,6 +567,14 @@ struct sof_ipc4_notify_module_data {
 #define SOF_IPC4_NOTIFY_MODULE_EVENTID_ALSA_MAGIC_VAL		0xA15A0000
 #define SOF_IPC4_NOTIFY_MODULE_EVENTID_ALSA_PARAMID_MASK	GENMASK(15, 0)
 
+/*
+ * Global non topology kcontrol ids
+ */
+
+enum sof_ipc4_kcontrol_global_id {
+	SOF_IPC4_KCONTROL_GLOBAL_CAPTURE_HW_MUTE = 1,
+};
+
 /** @}*/
 
 #endif
