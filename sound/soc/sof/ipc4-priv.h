@@ -119,4 +119,6 @@ void sof_ipc4_update_cpc_from_manifest(struct snd_sof_dev *sdev,
 size_t sof_ipc4_find_debug_slot_offset_by_type(struct snd_sof_dev *sdev,
 					       u32 slot_type);
 
+void snd_ipc4_global_capture_hw_mute_force(struct snd_sof_dev *sdev, bool force);
+
 #endif
