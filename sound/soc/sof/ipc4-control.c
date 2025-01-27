@@ -651,7 +651,11 @@ sof_ipc4_volsw_setup(struct snd_sof_dev *sdev, struct snd_sof_widget *swidget,
 
 struct sof_ipc4_kcontrol_global_priv {
 	struct snd_card *snd_card;
-	struct snd_kcontrol *capture_hw_mute;
+	struct sof_ipc4_kcontrol_global_capture_hw_mute {
+		struct snd_kcontrol *kctl;
+		bool force_muted;	/* If true mute state indicator forced to muted */
+		bool last_reported;	/* The latest mute state received from FW */
+	} capture_hw_mute;
 };
 
 static int sof_ipc4_capture_hw_mute_get(struct snd_kcontrol *kcontrol,
@@ -717,10 +721,13 @@ static int sof_ipc4_create_non_topology_controls(struct snd_sof_dev *sdev,
 		kctl->private_value = 0;
 
 		ret = snd_ctl_add(snd_card, kctl);
-		if (ret < 0)
+		if (ret >= 0) {
+			priv->capture_hw_mute.kctl = kctl;
+			priv->capture_hw_mute.force_muted = false;
+			priv->capture_hw_mute.last_reported = false;
+		} else {
 			dev_err(dev, "%s: snd_ctl_add(): failed", __func__);
-		else
-			priv->capture_hw_mute = kctl;
+		}
 	}
 
 	ipc4_data->global_kcontrol_priv = priv;
@@ -736,13 +743,19 @@ static void snd_ipc4_global_capture_hw_mute_report(struct snd_sof_dev *sdev,
 	struct device *dev = sdev->dev;
 	struct snd_kcontrol *kctl;
 
-	if (!priv || !priv->capture_hw_mute)
+	if (!priv || !priv->capture_hw_mute.kctl)
 		return;
 
-	kctl = priv->capture_hw_mute;
+	kctl = priv->capture_hw_mute.kctl;
 
-	dev_dbg(dev, "%s: reporting %u, old %lu", __func__,
-		status, kctl->private_value);
+	dev_dbg(dev, "%s: new %u, old %lu, last %u force %u", __func__,
+		status, kctl->private_value, priv->capture_hw_mute.last_reported,
+		priv->capture_hw_mute.force_muted);
+
+	priv->capture_hw_mute.last_reported = status;
+
+	if (priv->capture_hw_mute.force_muted)
+		status = false;
 
 	if (kctl->private_value == status)
 		return;
@@ -750,6 +763,20 @@ static void snd_ipc4_global_capture_hw_mute_report(struct snd_sof_dev *sdev,
 	kctl->private_value = status;
 	snd_ctl_notify(priv->snd_card, SNDRV_CTL_EVENT_MASK_VALUE, &kctl->id);
 }
+
+void snd_ipc4_global_capture_hw_mute_force(struct snd_sof_dev *sdev, bool force)
+{
+	struct sof_ipc4_fw_data *ipc4_data = sdev->private;
+	struct sof_ipc4_kcontrol_global_priv *priv = ipc4_data->global_kcontrol_priv;
+
+	if (!priv)
+		return;
+
+	priv->capture_hw_mute.force_muted = force;
+
+	snd_ipc4_global_capture_hw_mute_report(sdev, priv->capture_hw_mute.last_reported);
+}
+EXPORT_SYMBOL(snd_ipc4_global_capture_hw_mute_force);
 
 static void snd_ipc4_handle_global_event(struct snd_sof_dev *sdev,
 					 struct sof_ipc4_control_msg_payload *msg_data)
